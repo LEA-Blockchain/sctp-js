@@ -1,0 +1,81 @@
+{
+  "name": "@leachain/sctp",
+  "version": "1.0.0",
+  "description": "Wrapper for the SCTP WASM library providing encoding and decoding capabilities.",
+  "files": [
+    "dist",
+    "types",
+    "README.md"
+  ],
+  "main": "./dist/sctp.node.cjs",
+  "module": "./dist/sctp.node.mjs",
+  "browser": "./dist/sctp.web.js",
+  "types": "./types/index.d.ts",
+  "exports": {
+    ".": {
+      "node": {
+        "import": "./dist/sctp.node.mjs",
+        "require": "./dist/sctp.node.cjs"
+      },
+      "browser": {
+        "import": "./dist/sctp.web.js",
+        "script": "./dist/sctp.web.min.js"
+      },
+      "default": "./dist/sctp.node.mjs"
+    }
+  },
+  "scripts": {
+    "clean": "del-cli ./dist",
+    "prepare": "lea-rl \"https://github.com/LEA-Blockchain/sctp/releases/download/v1.0.0/sctp-v1.0.0-sctp.mvp.enc.wasm.tar.gz\" ./src/ && lea-rl \"https://github.com/LEA-Blockchain/sctp/releases/download/v1.0.0/sctp-v1.0.0-sctp.mvp.dec.wasm.tar.gz\" ./src/",
+    "build:node:esm": "esbuild src/index.js --bundle --outfile=dist/sctp.node.mjs --format=esm --platform=node --loader:.wasm=binary",
+    "build:node:cjs": "esbuild src/index.js --bundle --outfile=dist/sctp.node.cjs --format=cjs --platform=node --loader:.wasm=binary",
+    "build:browser:esm": "esbuild src/index.js --bundle --outfile=dist/sctp.web.js --format=esm --platform=browser --loader:.wasm=binary",
+    "build:browser:iife": "esbuild src/index.js --bundle --outfile=dist/sctp.web.min.js --format=iife --global-name=LEA_SCTP --minify --platform=browser --loader:.wasm=binary --minify",
+    "build:types": "tsc",
+    "build:jsdoc": "jsdoc -c jsdoc.json",
+    "build": "npm run clean && npm run build:types && npm run build:jsdoc && npm run build:node:esm && npm run build:node:cjs && npm run build:browser:esm && npm run build:browser:iife",
+    "test:node:esm": "node ./test/node-esm.test.mjs",
+    "test:node": "npm run test:node:esm",
+    "test": "npm run test:node",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "prepublishOnly": "npm run lint && npm run build && npm run test:node"
+  },
+  "author": {
+    "name": "Allwin Ketnawang",
+    "url": "https://getlea.org"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "del-cli": "^6.0.0",
+    "esbuild": "^0.25.3",
+    "eslint": "^9.25.1",
+    "eslint-config-prettier": "^10.1.2",
+    "eslint-plugin-prettier": "^5.2.6",
+    "jsdoc": "^4.0.4",
+    "lea-rl": "^1.0.0",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=22.15.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "homepage": "https://github.com/LEA-Blockchain/sctp-js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LEA-Blockchain/sctp-js.git"
+  },
+  "keywords": [
+    "scte",
+    "wasm",
+    "encoder",
+    "decoder",
+    "binary",
+    "serialization",
+    "leachain",
+    "lea"
+  ]
+}
