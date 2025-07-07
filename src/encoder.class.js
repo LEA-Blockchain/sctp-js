@@ -141,10 +141,20 @@ class SctpEncoderImpl {
     build() {
         if (!this.instance) throw new Error('Encoder not initialized.');
         this.instance.exports.sctp_encoder_add_eof();
+        return this.getBytes();
+    }
+
+    /**
+     * Returns the encoded data without an EOF marker.
+     * @returns {Uint8Array} A copy of the encoded data.
+     */
+    getBytes() {
+        if (!this.instance) throw new Error('Encoder not initialized.');
         const dataPtr = this.instance.exports.sctp_encoder_data();
         const size = this.instance.exports.sctp_encoder_size();
         return new Uint8Array(this.memory.buffer, dataPtr, size).slice();
     }
+
 }
 
 /**
