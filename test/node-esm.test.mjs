@@ -20,6 +20,8 @@ async function runTest() {
     encoder.addFloat64(987.654321);
     encoder.addShort(10);
     encoder.addVector(new Uint8Array([1, 2, 3, 4, 5]));
+    encoder.addUleb128(12345678901234567890n);
+    encoder.addSleb128(-1234567890123456789n);
 
     const encodedData = encoder.build();
     console.log(`Encoded ${encodedData.length} bytes.`, encodedData);
@@ -30,7 +32,7 @@ async function runTest() {
 
     // 5. Assertions
     console.log('Verifying decoded data...');
-    assert.strictEqual(decodedFields.length, 9, 'Should have 9 fields (including EOF)');
+    assert.strictEqual(decodedFields.length, 11, 'Should have 11 fields (including EOF)');
 
     assert.deepStrictEqual(decodedFields[0], { type: 'INT32', value: -123456 });
     assert.deepStrictEqual(decodedFields[1], { type: 'UINT32', value: 123456 });
@@ -41,7 +43,9 @@ async function runTest() {
     assert.deepStrictEqual(decodedFields[5], { type: 'FLOAT64', value: 987.654321 });
     assert.deepStrictEqual(decodedFields[6], { type: 'SHORT', value: 10 });
     assert.deepStrictEqual(decodedFields[7], { type: 'VECTOR', value: new Uint8Array([1, 2, 3, 4, 5]) });
-    assert.deepStrictEqual(decodedFields[8], { type: 'EOF' });
+    assert.deepStrictEqual(decodedFields[8], { type: 'ULEB128', value: 12345678901234567890n });
+    assert.deepStrictEqual(decodedFields[9], { type: 'SLEB128', value: -1234567890123456789n });
+    assert.deepStrictEqual(decodedFields[10], { type: 'EOF' });
 
     // Test re-initialization
     console.log('Testing re-initialization...');

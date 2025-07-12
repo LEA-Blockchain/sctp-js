@@ -96,12 +96,39 @@ class SctpDecoderImpl {
             case 'VECTOR':
                 value = new Uint8Array(this.memory.buffer, dataPtr, size).slice();
                 break;
-            case 'ULEB128':
-                value = view.getBigUint64(0, true);
+            case 'ULEB128': {
+                let result = 0n;
+                let shift = 0n;
+                for (let i = 0; i < size; i++) {
+                    const byte = BigInt(view.getUint8(i));
+                    result |= (byte & 0x7fn) << shift;
+                    if ((byte & 0x80n) === 0n) {
+                        break;
+                    }
+                    shift += 7n;
+                }
+                value = result;
                 break;
-            case 'SLEB128':
-                value = view.getBigInt64(0, true);
+            }
+            case 'SLEB128': {
+                let result = 0n;
+                let shift = 0n;
+                let byte;
+                for (let i = 0; i < size; i++) {
+                    byte = BigInt(view.getUint8(i));
+                    result |= (byte & 0x7fn) << shift;
+                    shift += 7n;
+                    if ((byte & 0x80n) === 0n) {
+                        break;
+                    }
+                }
+
+                if (byte !== undefined && shift < 64n && (byte & 0x40n) !== 0n) {
+                    result |= - (1n << shift);
+                }
+                value = result;
                 break;
+            }
             default:
                 // This case should ideally not be hit if the WASM module is correct.
                 throw new Error(`Unknown SCTP type ID: ${type}`);
