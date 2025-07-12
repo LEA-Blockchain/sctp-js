@@ -124,7 +124,7 @@ class SctpDecoderImpl {
                 }
 
                 if (byte !== undefined && shift < 64n && (byte & 0x40n) !== 0n) {
-                    result |= - (1n << shift);
+                    result |= -(1n << shift);
                 }
                 value = result;
                 break;
