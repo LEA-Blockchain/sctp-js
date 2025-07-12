@@ -97,9 +97,10 @@ class SctpDecoderImpl {
                 value = new Uint8Array(this.memory.buffer, dataPtr, size).slice();
                 break;
             case 'ULEB128':
+                value = view.getBigUint64(0, true);
+                break;
             case 'SLEB128':
-                // Return the raw bytes for LEB128, as JS doesn't have a native type
-                value = new Uint8Array(this.memory.buffer, dataPtr, size).slice();
+                value = view.getBigInt64(0, true);
                 break;
             default:
                 // This case should ideally not be hit if the WASM module is correct.

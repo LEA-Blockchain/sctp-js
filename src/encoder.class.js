@@ -154,7 +154,6 @@ class SctpEncoderImpl {
         const size = this.instance.exports.sctp_encoder_size();
         return new Uint8Array(this.memory.buffer, dataPtr, size).slice();
     }
-
 }
 
 /**
