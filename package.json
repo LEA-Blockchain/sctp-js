@@ -1,6 +1,6 @@
 {
   "name": "@leachain/sctp",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Wrapper for the SCTP WASM library providing encoding and decoding capabilities.",
   "files": [
     "dist",
