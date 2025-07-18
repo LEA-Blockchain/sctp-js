@@ -1,10 +1,7 @@
-/**
- * @module sctp
- */
+import { createShim } from '@leachain/vm-shim';
+import wasmBytecode from './sctp.dec.wasm';
 
-import decoderWasmModule from './sctp.mvp.dec.wasm';
-
-let wasmModule = null;
+let wasmModule;
 
 const typeMap = {
     INT8: 0,
@@ -27,113 +24,25 @@ const typeMap = {
 const typeIdToName = Object.fromEntries(Object.entries(typeMap).map(([name, id]) => [id, name]));
 
 /**
- * @class SctpDecoderImpl
- * @private
+ * @class Decoder
  * @description Wraps the SCTP WASM decoder module to provide a simple JavaScript interface for decoding data.
  */
-class SctpDecoderImpl {
-    /**
-     * @private
-     */
+export class Decoder {
     constructor() {
         this.instance = null;
         this.memory = null;
-        this.decodedFields = [];
     }
 
-    /**
-     * The callback function passed to the WASM module to handle decoded data fields.
-     * This method is called by the WASM module for each field it decodes.
-     * @private
-     * @param {number} type The SCTP type ID of the decoded field.
-     * @param {number} dataPtr A pointer to the decoded data in the WASM memory.
-     * @param {number} size The size of the decoded data.
-     */
-    _handle_data(type, dataPtr, size) {
-        const typeName = typeIdToName[type];
-        if (typeName === 'EOF') {
-            this.decodedFields.push({ type: 'EOF' });
-            return;
+    async init() {
+        if (!wasmModule) {
+            wasmModule = await WebAssembly.compile(wasmBytecode);
         }
-
-        const view = new DataView(this.memory.buffer, dataPtr, size);
-        let value;
-
-        switch (typeName) {
-            case 'INT8':
-                value = view.getInt8(0);
-                break;
-            case 'UINT8':
-                value = view.getUint8(0);
-                break;
-            case 'INT16':
-                value = view.getInt16(0, true);
-                break;
-            case 'UINT16':
-                value = view.getUint16(0, true);
-                break;
-            case 'INT32':
-                value = view.getInt32(0, true);
-                break;
-            case 'UINT32':
-                value = view.getUint32(0, true);
-                break;
-            case 'INT64':
-                value = view.getBigInt64(0, true);
-                break;
-            case 'UINT64':
-                value = view.getBigUint64(0, true);
-                break;
-            case 'FLOAT32':
-                value = view.getFloat32(0, true);
-                break;
-            case 'FLOAT64':
-                value = view.getFloat64(0, true);
-                break;
-            case 'SHORT':
-                value = new Uint8Array(this.memory.buffer, dataPtr, size)[0];
-                break;
-            case 'VECTOR':
-                value = new Uint8Array(this.memory.buffer, dataPtr, size).slice();
-                break;
-            case 'ULEB128': {
-                let result = 0n;
-                let shift = 0n;
-                for (let i = 0; i < size; i++) {
-                    const byte = BigInt(view.getUint8(i));
-                    result |= (byte & 0x7fn) << shift;
-                    if ((byte & 0x80n) === 0n) {
-                        break;
-                    }
-                    shift += 7n;
-                }
-                value = result;
-                break;
-            }
-            case 'SLEB128': {
-                let result = 0n;
-                let shift = 0n;
-                let byte;
-                for (let i = 0; i < size; i++) {
-                    byte = BigInt(view.getUint8(i));
-                    result |= (byte & 0x7fn) << shift;
-                    shift += 7n;
-                    if ((byte & 0x80n) === 0n) {
-                        break;
-                    }
-                }
-
-                if (byte !== undefined && shift < 64n && (byte & 0x40n) !== 0n) {
-                    result |= -(1n << shift);
-                }
-                value = result;
-                break;
-            }
-            default:
-                // This case should ideally not be hit if the WASM module is correct.
-                throw new Error(`Unknown SCTP type ID: ${type}`);
-        }
-        this.decodedFields.push({ type: typeName, value });
+        const shim = createShim();
+        const instance = await WebAssembly.instantiate(wasmModule, shim.importObject);
+        shim.bindInstance(instance);
+        this.instance = instance;
+        this.memory = this.instance.exports.memory;
+        return this;
     }
 
     /**
@@ -143,56 +52,79 @@ class SctpDecoderImpl {
      */
     decode(encodedData) {
         if (!this.instance) throw new Error('Decoder not initialized.');
-        this.decodedFields = []; // Clear previous results
 
-        const bufferPtr = this.instance.exports.sctp_decoder_init(encodedData.length);
+        const bufferPtr = this.instance.exports.__lea_malloc(encodedData.length);
         if (bufferPtr === 0) {
             throw new Error('Failed to allocate memory in WASM for decoder.');
         }
 
         new Uint8Array(this.memory.buffer, bufferPtr, encodedData.length).set(encodedData);
 
-        const result = this.instance.exports.sctp_decoder_run();
-        if (result !== 0) {
-            throw new Error(`Decoder failed with exit code: ${result}`);
-        }
+        const decoderPtr = this.instance.exports.sctp_decoder_from_buffer(bufferPtr, encodedData.length);
 
-        return this.decodedFields;
-    }
-}
+        const decodedFields = [];
+        while (this.instance.exports.sctp_decoder_next(decoderPtr) !== typeMap.EOF) {
+            const dec = new DataView(this.memory.buffer);
+            const lastType = dec.getUint32(decoderPtr + 12, true);
+            const lastValuePtr = decoderPtr + 16;
+            const lastSize = dec.getUint32(decoderPtr + 24, true);
+            const typeName = typeIdToName[lastType];
+            const view = new DataView(this.memory.buffer);
+            let value;
 
-/**
- * Creates a new SctpDecoderImpl instance.
- * This function compiles the WebAssembly module on its first run and reuses it for subsequent calls.
- * @returns {Promise<SctpDecoderImpl>} A promise that resolves to a new decoder instance.
- */
-export async function SctpDecoder() {
-    if (!wasmModule) {
-        wasmModule = await WebAssembly.compile(decoderWasmModule);
-    }
-
-    const decoder = new SctpDecoderImpl();
-
-    const importObject = {
-        env: {
-            __sctp_data_handler: decoder._handle_data.bind(decoder),
-            __lea_log: (ptr) => {
-                if (!decoder.memory) return;
-                const mem = new Uint8Array(decoder.memory.buffer);
-                let end = ptr;
-                while (mem[end] !== 0) {
-                    end++;
+            switch (typeName) {
+                case 'INT8':
+                    value = view.getInt8(lastValuePtr);
+                    break;
+                case 'UINT8':
+                    value = view.getUint8(lastValuePtr);
+                    break;
+                case 'INT16':
+                    value = view.getInt16(lastValuePtr, true);
+                    break;
+                case 'UINT16':
+                    value = view.getUint16(lastValuePtr, true);
+                    break;
+                case 'INT32':
+                    value = view.getInt32(lastValuePtr, true);
+                    break;
+                case 'UINT32':
+                    value = view.getUint32(lastValuePtr, true);
+                    break;
+                case 'INT64':
+                    value = view.getBigInt64(lastValuePtr, true);
+                    break;
+                case 'UINT64':
+                    value = view.getBigUint64(lastValuePtr, true);
+                    break;
+                case 'FLOAT32':
+                    value = view.getFloat32(lastValuePtr, true);
+                    break;
+                case 'FLOAT64':
+                    value = view.getFloat64(lastValuePtr, true);
+                    break;
+                case 'SHORT':
+                    value = view.getUint8(lastValuePtr);
+                    break;
+                case 'VECTOR': {
+                    const ptr = view.getUint32(lastValuePtr, true);
+                    value = new Uint8Array(this.memory.buffer, ptr, lastSize).slice();
+                    break;
                 }
-                const message = new TextDecoder('utf-8').decode(mem.subarray(ptr, end));
-                console.error(`sctp.mvp.dec.wasm: ${message}`);
-            },
-        },
-    };
-
-    const instance = await WebAssembly.instantiate(wasmModule, importObject);
-
-    decoder.instance = instance;
-    decoder.memory = instance.exports.memory;
-
-    return decoder;
+                case 'ULEB128':
+                    value = view.getBigUint64(lastValuePtr, true);
+                    break;
+                case 'SLEB128':
+                    value = view.getBigInt64(lastValuePtr, true);
+                    break;
+                default:
+                    // This case should ideally not be hit if the WASM module is correct.
+                    throw new Error(`Unknown SCTP type ID: ${lastType}`);
+            }
+            decodedFields.push({ type: typeName, value });
+        }
+        decodedFields.push({ type: 'EOF' });
+        this.instance.exports.__lea_allocator_reset();
+        return decodedFields;
+    }
 }

@@ -43,110 +43,206 @@
 
 
     <section>
-        <article><h1>@leachain/sctp</h1>
-<blockquote>
-<p>Wrapper for the SCTP WASM library providing encoding and decoding capabilities.</p>
-</blockquote>
-<p>This library provides a simple interface to the LEA SCTP (Simple Composite Type Encoding) WASM modules for efficient binary encoding and decoding of data.</p>
+        <article><!--
+giturl: https://github.com/LEA-Blockchain/sctp-js.git
+name: sctp
+version: 1.3.0
+description: A JavaScript library for encoding and decoding data using the Simple Compact Transaction Protocol (SCTP).
+-->
+<h1>@leachain/sctp</h1>
+<p><a href="https://www.npmjs.com/package/@leachain/sctp"><img src="https://img.shields.io/npm/v/@leachain/sctp" alt="npm version"></a>
+<a href="https://github.com/LEA-Blockchain/sctp-js/blob/main/LICENSE"><img src="https://img.shields.io/github/license/LEA-Blockchain/sctp-js" alt="License"></a></p>
+<p>A JavaScript library for encoding and decoding data using the Simple Compact Transaction Protocol (SCTP), powered by WebAssembly for native speed.</p>
+<h2>Features</h2>
+<ul>
+<li><strong>High-Performance</strong>: Utilizes WebAssembly for fast and efficient binary serialization.</li>
+<li><strong>Rich Data Types</strong>: Supports a wide range of types, including integers, floats, vectors, and LEB128-encoded numbers.</li>
+<li><strong>Cross-Platform</strong>: Works seamlessly in both Node.js and modern browser environments.</li>
+<li><strong>Simple API</strong>: Provides an intuitive and easy-to-use interface for both encoding and decoding.</li>
+</ul>
 <h2>Installation</h2>
-<pre class="prettyprint source lang-bash"><code>npm install @leachain/sctp
+<pre class="prettyprint source lang-sh"><code>npm install @leachain/sctp
 </code></pre>
 <h2>Usage</h2>
-<p>The library can be used in both Node.js and browser environments. The <code>SctpEncoder</code> and <code>SctpDecoder</code> must be initialized asynchronously.</p>
-<h3>Node.js (ESM)</h3>
-<pre class="prettyprint source lang-javascript"><code>import { SctpEncoder, SctpDecoder } from '@leachain/sctp';
+<p>The <code>Encoder</code> and <code>Decoder</code> classes must be instantiated and then initialized asynchronously before use.</p>
+<h3>ES Modules (ESM)</h3>
+<pre class="prettyprint source lang-javascript"><code>import { Encoder, Decoder } from '@leachain/sctp';
+import assert from 'assert';
 
 async function main() {
-  const encoder = await SctpEncoder();
-  encoder.init(2048); // Optionally provide an initial buffer size in bytes
+  // --- Encoder ---
+  const encoder = new Encoder();
+  await encoder.init();
 
-  // Add fields to the encoder
-  encoder.addInt32(-123);
-  encoder.addFloat64(123.456);
-  encoder.addVector(new Uint8Array([1, 2, 3]));
+  encoder.addUint32(123456);
+  encoder.addShort(10);
+  encoder.addVector(new Uint8Array([1, 2, 3, 4, 5]));
 
-  const encoded = encoder.build();
+  const encodedData = encoder.build();
 
-  const decoder = await SctpDecoder();
-  const decoded = decoder.decode(encoded);
+  // --- Decoder ---
+  const decoder = new Decoder();
+  await decoder.init();
 
-  console.log(decoded);
+  const decodedFields = decoder.decode(encodedData);
+
+  console.log(decodedFields);
   // Expected output:
   // [
-  //   { type: 'INT32', value: -123 },
-  //   { type: 'FLOAT64', value: 123.456 },
-  //   { type: 'VECTOR', value: Uint8Array [ 1, 2, 3 ] },
+  //   { type: 'UINT32', value: 123456 },
+  //   { type: 'SHORT', value: 10 },
+  //   { type: 'VECTOR', value: Uint8Array(5) [ 1, 2, 3, 4, 5 ] },
   //   { type: 'EOF' }
   // ]
 }
 
 main();
 </code></pre>
-<h3>Node.js (CJS)</h3>
-<pre class="prettyprint source lang-javascript"><code>const { SctpEncoder, SctpDecoder } = require('@leachain/sctp');
+<h3>CommonJS (CJS)</h3>
+<pre class="prettyprint source lang-javascript"><code>const { Encoder, Decoder } = require('@leachain/sctp');
+const assert = require('assert');
 
 async function main() {
-  const encoder = await SctpEncoder();
-  encoder.init(2048); // Optionally provide an initial buffer size in bytes
+  // --- Encoder ---
+  const encoder = new Encoder();
+  await encoder.init();
 
-  // Add fields to the encoder
-  encoder.addInt32(-123);
-  encoder.addFloat64(123.456);
-  encoder.addVector(new Uint8Array([1, 2, 3]));
+  encoder.addUint32(123456);
+  encoder.addShort(10);
+  encoder.addVector(new Uint8Array([1, 2, 3, 4, 5]));
 
-  const encoded = encoder.build();
+  const encodedData = encoder.build();
 
-  const decoder = await SctpDecoder();
-  const decoded = decoder.decode(encoded);
+  // --- Decoder ---
+  const decoder = new Decoder();
+  await decoder.init();
 
-  console.log(decoded);
-  // Expected output:
-  // [
-  //   { type: 'INT32', value: -123 },
-  //   { type: 'FLOAT64', value: 123.456 },
-  //   { type: 'VECTOR', value: Uint8Array [ 1, 2, 3 ] },
-  //   { type: 'EOF' }
-  // ]
+  const decodedFields = decoder.decode(encodedData);
+
+  console.log(decodedFields);
 }
 
 main();
 </code></pre>
-<h3>Browser</h3>
-<pre class="prettyprint source lang-html"><code>&lt;script src=&quot;https://unpkg.com/@leachain/sctp/dist/sctp.web.min.js&quot;>&lt;/script>
-&lt;script>
-  async function main() {
-    const { SctpEncoder, SctpDecoder } = LEA_SCTP;
-
-    const encoder = await SctpEncoder();
-    encoder.init(2048); // Optionally provide an initial buffer size in bytes
-
-    // Add fields to the encoder
-    encoder.addInt32(-123);
-    encoder.addFloat64(123.456);
-    encoder.addVector(new Uint8Array([1, 2, 3]));
-
-    const encoded = encoder.build();
-
-    const decoder = await SctpDecoder();
-    const decoded = decoder.decode(encoded);
-
-    console.log(decoded);
-    // Expected output:
-    // [
-    //   { type: 'INT32', value: -123 },
-    //   { type: 'FLOAT64', value: 123.456 },
-    //   { type: 'VECTOR', value: Uint8Array [ 1, 2, 3 ] },
-    //   { type: 'EOF' }
-    // ]
-  }
-
-  main();
-&lt;/script>
-</code></pre>
-<h2>API</h2>
-<p>For detailed API documentation, please refer to the <a href="https://lea-blockchain.github.io/sctp-js">JSDoc generated documentation</a>.</p>
+<h2>API Reference</h2>
+<h3><code>Encoder</code></h3>
+<p>A class for encoding a sequence of data fields into a compact byte stream.</p>
+<h4><code>new Encoder()</code></h4>
+<p>Creates a new <code>Encoder</code> instance.</p>
+<h4><code>async init(initialCapacity?)</code></h4>
+<ul>
+<li><code>initialCapacity</code> <code>&lt;number&gt;</code> (Optional) The initial capacity of the encoder buffer in bytes. Defaults to <code>1024</code>.</li>
+</ul>
+<p>Initializes the underlying WebAssembly module. This method must be called before any other methods.</p>
+<h4><code>add&lt;Type&gt;(value)</code></h4>
+<p>The <code>Encoder</code> provides methods for adding various data types.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Parameter Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>addInt8</code></td>
+<td><code>number</code></td>
+<td>Appends an 8-bit signed integer.</td>
+</tr>
+<tr>
+<td><code>addUint8</code></td>
+<td><code>number</code></td>
+<td>Appends an 8-bit unsigned integer.</td>
+</tr>
+<tr>
+<td><code>addInt16</code></td>
+<td><code>number</code></td>
+<td>Appends a 16-bit signed integer.</td>
+</tr>
+<tr>
+<td><code>addUint16</code></td>
+<td><code>number</code></td>
+<td>Appends a 16-bit unsigned integer.</td>
+</tr>
+<tr>
+<td><code>addInt32</code></td>
+<td><code>number</code></td>
+<td>Appends a 32-bit signed integer.</td>
+</tr>
+<tr>
+<td><code>addUint32</code></td>
+<td><code>number</code></td>
+<td>Appends a 32-bit unsigned integer.</td>
+</tr>
+<tr>
+<td><code>addInt64</code></td>
+<td><code>bigint</code></td>
+<td>Appends a 64-bit signed integer.</td>
+</tr>
+<tr>
+<td><code>addUint64</code></td>
+<td><code>bigint</code></td>
+<td>Appends a 64-bit unsigned integer.</td>
+</tr>
+<tr>
+<td><code>addFloat32</code></td>
+<td><code>number</code></td>
+<td>Appends a 32-bit float.</td>
+</tr>
+<tr>
+<td><code>addFloat64</code></td>
+<td><code>number</code></td>
+<td>Appends a 64-bit float (double).</td>
+</tr>
+<tr>
+<td><code>addShort</code></td>
+<td><code>number</code></td>
+<td>Appends a small integer (0-15).</td>
+</tr>
+<tr>
+<td><code>addVector</code></td>
+<td><code>Uint8Array</code></td>
+<td>Appends a variable-length byte array.</td>
+</tr>
+<tr>
+<td><code>addUleb128</code></td>
+<td><code>bigint</code></td>
+<td>Appends a ULEB128-encoded integer.</td>
+</tr>
+<tr>
+<td><code>addSleb128</code></td>
+<td><code>bigint</code></td>
+<td>Appends an SLEB128-encoded integer.</td>
+</tr>
+</tbody>
+</table>
+<h4><code>build()</code></h4>
+<ul>
+<li><strong>Returns</strong> <code>&lt;Uint8Array&gt;</code></li>
+</ul>
+<p>Finalizes the encoding process, adds an <code>EOF</code> marker, and returns a <code>Uint8Array</code> containing the complete byte stream.</p>
+<h4><code>getBytes()</code></h4>
+<ul>
+<li><strong>Returns</strong> <code>&lt;Uint8Array&gt;</code></li>
+</ul>
+<p>Returns the encoded data without an <code>EOF</code> marker.</p>
+<h3><code>Decoder</code></h3>
+<p>A class for decoding a byte stream back into its original sequence of data fields.</p>
+<h4><code>new Decoder()</code></h4>
+<p>Creates a new <code>Decoder</code> instance.</p>
+<h4><code>async init()</code></h4>
+<p>Initializes the underlying WebAssembly module. This method must be called before <code>decode()</code>.</p>
+<h4><code>decode(encodedData)</code></h4>
+<ul>
+<li><code>encodedData</code> <code>&lt;Uint8Array&gt;</code> The byte stream to decode.</li>
+<li><strong>Returns</strong> <code>Array&lt;{type: string, value: any}&gt;</code></li>
+</ul>
+<p>Decodes the provided <code>Uint8Array</code> and returns an array of field objects. Each object contains a <code>type</code> (string) and its corresponding <code>value</code>.</p>
+<h2>Contributing</h2>
+<p>Contributions are welcome! Please open an issue or submit a pull request for any bugs, features, or improvements.</p>
 <h2>License</h2>
-<p><a href="LICENSE">MIT</a></p></article>
+<p>This project is licensed under the MIT License. See the <a href="LICENSE">LICENSE</a> file for details.</p></article>
     </section>
 
 
@@ -157,13 +253,13 @@ main();
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-@leachain_sctp.html">@leachain/sctp</a></li><li><a href="module-sctp.html">sctp</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-@leachain_sctp.html">@leachain/sctp</a></li></ul><h3>Classes</h3><ul><li><a href="Decoder.html">Decoder</a></li><li><a href="Encoder.html">Encoder</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Sat Jul 12 2025 17:32:09 GMT-0400 (Eastern Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.4</a> on Fri Jul 18 2025 05:18:01 GMT-0400 (Eastern Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

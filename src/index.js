@@ -3,7 +3,7 @@
  * @module @leachain/sctp
  */
 
-import { SctpEncoder } from './encoder.class.js';
-import { SctpDecoder } from './decoder.class.js';
+import { Encoder } from './encoder.class.js';
+import { Decoder } from './decoder.class.js';
 
-export { SctpEncoder, SctpDecoder };
+export { Encoder, Decoder };
