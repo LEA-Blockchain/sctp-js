@@ -60,6 +60,16 @@ export class Encoder {
     }
 
     /**
+     * Adds a raw, pre-encoded SCTP snippet to the buffer.
+     * @param {Uint8Array} data The raw byte array to add.
+     */
+    addRaw(data) {
+        const length = data.length;
+        const ptr = this.instance.exports.sctp_encoder_add_raw(length);
+        new Uint8Array(this.memory.buffer, ptr, length).set(data);
+    }
+
+    /**
      * Adds an 8-bit signed integer to the buffer.
      * @param {number} value
      */

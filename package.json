@@ -26,7 +26,7 @@
   },
   "scripts": {
     "clean": "del-cli ./dist",
-    "prepare": "lea-rl \"https://github.com/LEA-Blockchain/sctp/releases/download/v1.2.1/sctp.enc.wasm-v1.2.1.tar.gz\" ./src/ && lea-rl \"https://github.com/LEA-Blockchain/sctp/releases/download/v1.2.1/sctp.dec.wasm-v1.2.1.tar.gz\" ./src/",
+    "prepare": "lea-rl \"https://github.com/LEA-Blockchain/sctp/releases/download/v1.3.0/sctp.enc.wasm-v1.3.0.tar.gz\" ./src/ && lea-rl \"https://github.com/LEA-Blockchain/sctp/releases/download/v1.3.0/sctp.dec.wasm-v1.3.0.tar.gz\" ./src/",
     "build:node:esm": "esbuild src/index.js --bundle --outfile=dist/sctp.node.mjs --format=esm --platform=node --loader:.wasm=binary",
     "build:node:cjs": "esbuild src/index.js --bundle --outfile=dist/sctp.node.cjs --format=cjs --platform=node --loader:.wasm=binary",
     "build:browser:esm": "esbuild src/index.js --bundle --outfile=dist/sctp.web.js --format=esm --platform=browser --loader:.wasm=binary",

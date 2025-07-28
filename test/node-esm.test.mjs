@@ -85,6 +85,41 @@ async function runTest() {
     const newDecoded = decoder2.decode(newEncodedData);
     assert.deepStrictEqual(newDecoded[0], { type: 'UINT32', value: 42 });
 
+    // --- Test addRaw ---
+    console.log('Testing addRaw...');
+    const snippetEncoder = new Encoder();
+    await snippetEncoder.init();
+    snippetEncoder.addUint16(9999);
+    snippetEncoder.addInt8(-42);
+    const snippetBytes = snippetEncoder.getBytes(); // Get raw bytes without EOF
+
+    const mainEncoder = new Encoder();
+    await mainEncoder.init();
+    mainEncoder.addUint32(111222);
+    mainEncoder.addRaw(snippetBytes);
+    mainEncoder.addShort(5);
+
+    const rawEncodedData = mainEncoder.build();
+    const rawDecodedFields = decoder.decode(rawEncodedData);
+
+    console.log('Decoded Fields from addRaw test:', rawDecodedFields);
+
+    assert.strictEqual(rawDecodedFields.length, 5, 'Expected 5 fields from addRaw test (including EOF)');
+    assert.strictEqual(rawDecodedFields[0].type, 'UINT32', 'Raw Test Field 0 type should be UINT32');
+    assert.strictEqual(rawDecodedFields[0].value, 111222, 'Raw Test Field 0 value should be 111222');
+
+    assert.strictEqual(rawDecodedFields[1].type, 'UINT16', 'Raw Test Field 1 type should be UINT16');
+    assert.strictEqual(rawDecodedFields[1].value, 9999, 'Raw Test Field 1 value should be 9999');
+
+    assert.strictEqual(rawDecodedFields[2].type, 'INT8', 'Raw Test Field 2 type should be INT8');
+    assert.strictEqual(rawDecodedFields[2].value, -42, 'Raw Test Field 2 value should be -42');
+
+    assert.strictEqual(rawDecodedFields[3].type, 'SHORT', 'Raw Test Field 3 type should be SHORT');
+    assert.strictEqual(rawDecodedFields[3].value, 5, 'Raw Test Field 3 value should be 5');
+
+    assert.strictEqual(rawDecodedFields[4].type, 'EOF', 'Raw Test Field 4 type should be EOF');
+    console.log('[PASS] addRaw test passed!');
+
     console.log('All tests passed!');
 }
 
